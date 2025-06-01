@@ -1,4 +1,18 @@
 import * as vscode from 'vscode';
+// Fallback: simple vowel-count function
+let syllableFn: (text: string) => number = (text: string) => {
+  const m = text.match(/[aeiouy]/gi);
+  return m ? m.length : 0;
+};
+// Dynamically import `syllable` ESM module for accurate counts
+(async () => {
+  try {
+    const mod = (await import('syllable')) as { syllable: (text: string) => number };
+    syllableFn = mod.syllable;
+  } catch {
+    // If import fails, fallback will be used
+  }
+})();
 
 export function activate(context: vscode.ExtensionContext) {
   let syllableDecorationType = vscode.window.createTextEditorDecorationType({
@@ -13,9 +27,13 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Функция для подсчета слогов
   function countSyllables(text: string): number {
-    const vowels = /[аеёиоуыэюяaeiouy]/gi; // Гласные буквы
-    const matches = text.match(vowels);
-    return matches ? matches.length : 0;
+    try {
+      return syllableFn(text);
+    } catch {
+      // Should never throw, but fallback to vowel count
+      const m = text.match(/[aeiouy]/gi);
+      return m ? m.length : 0;
+    }
   }
 
 
